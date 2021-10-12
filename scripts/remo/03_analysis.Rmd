@@ -1,0 +1,289 @@
+---
+title: "Prelim_analisis"
+author: "Carlos Dobler"
+date: "10/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "../")
+
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.align = "center",
+                      out.width = "70%",
+                      message = FALSE,
+                      warning = FALSE)
+
+library(tidyverse)
+library(stars)
+library(lubridate)
+
+mod <- "had"
+# mod <- "mpi"
+# mod <- "nor"
+
+```
+
+## PRECIP
+```{r}
+
+readRDS(str_glue("data/precip_{mod}_wdates.rds")) -> precip
+
+precip %>% 
+  st_apply(3, mean) %>%
+  aggregate(by = "years", FUN = sum) %>% 
+  as_tibble() %>% 
+  mutate(year = year(time)) %>% 
+  select(-time) %>%
+  
+  # mutate(period = case_when(
+  #   
+  #   year < 1990 ~ "baseline",
+  #   year >= 2000 & year < 2020 ~ "current",
+  #   year >= 2040 & year < 2060 ~ "2040-2060",
+  #   year >= 2080 ~ "2080-2100",
+  #   TRUE ~ NA_character_
+  #   
+  # ) %>% factor(levels = c("baseline",
+  #                         "current",
+  #                         "2040-2060",
+  #                         "2090-2100"
+  #                         ))
+  # ) %>% 
+  {.} -> precip_ts_annual
+
+precip_ts_annual %>% 
+  mutate(prob = ecdf(mean)(mean)) %>% 
+  group_by(gr = cut(year, breaks = seq(1969, 2099, by = 10))) %>% 
+  mutate(decade = first(year)) %>%
+  ungroup() %>% 
+  select(-gr) -> t
+  
+t %>% 
+  ggplot(aes(x = prob, y = decade, group = decade, fill = stat(x))) +
+  ggridges::geom_density_ridges_gradient(scale = 1.5, bandwidth = 0.12, rel_min_height = 0.015) +
+  scale_fill_distiller(palette = "Spectral", direction = -1, limits = c(-0.2, 1.2), guide = 'none') +
+  scale_y_continuous(breaks = seq(1970, 2100, by = 10))
+
+
+```
+
+```{r}
+
+# CHANGES BASED ON INDICES
+
+precip %>% 
+  st_apply(3, mean) %>%
+  setNames("precip") %>% 
+  as_tibble() %>% 
+  mutate(precip = precip * 86400) -> precip_ts_daily
+
+# PRCPTOT: Total precipitation in wet days (PR ≥ 1 mm) - annual
+precip_ts_daily %>%
+  mutate(precip = ifelse(precip >= 1, precip, NA)) %>% 
+  group_by(year = year(time)) %>%
+  summarize(precip = sum(precip, na.rm = T)) %>% 
+  ungroup() %>% 
+  
+  ggplot(aes(x = year, y = precip)) +
+  geom_smooth(color = "red") +
+  geom_point() +
+  labs(subtitle = "Annual total precipitation in wet days (precip ≥ 1 mm)",
+       y = "mm")
+  
+
+# RX1day: Highest maximum 1-day precipitation - seasonal (JJA)
+precip_ts_daily %>% 
+  filter(month(time) %in% c(6,7,8)) %>% 
+  group_by(year = year(time)) %>% 
+  summarize(precip = max(precip)) %>% 
+  ungroup() %>% 
+  
+  ggplot(aes(x = year, y = precip)) +
+  geom_smooth(color = "red") +
+  geom_point() +
+  labs(subtitle = "Seasonal (JJA) highest 1-day precipitation",
+       y = "mm")
+
+
+# RX5day: Highest maximum consecutive 5-day precipitation - seasonal (JJA)
+precip_ts_daily %>% 
+  filter(month(time) %in% c(6,7,8)) %>% 
+  group_by(year = year(time)) %>% 
+  mutate(precip = zoo::rollapply(precip, 5, sum, fill = NA)) %>%
+  summarize(precip = max(precip, na.rm = T)) %>% 
+  ungroup() %>% 
+  
+  ggplot(aes(x = year, y = precip)) +
+  geom_smooth(color = "red") +
+  geom_point() +
+  labs(subtitle = "Seasonal (JJA) highest consecutive 5-day precipitation",
+       y = "mm")
+
+# ** R95p: Annual total precipitation from days > 95th percentile
+precip_ts_daily %>%
+  group_by(year = year(time)) %>% 
+  mutate(precip = ifelse(precip >= quantile(precip, 0.95), precip, NA)) %>%
+  summarize(precip = sum(precip, na.rm = T)) %>% 
+  ungroup() %>% 
+  
+  ggplot(aes(x = year, y = precip)) +
+  geom_smooth(color = "red") +
+  geom_point() +
+  labs(subtitle = "Annual total precip. from days > 95th percentile",
+       y = "mm")
+  
+# SDII: Simple precip intensity index (ratio of annual total precip. in wet days to the number of wet days)
+precip_ts_daily %>%
+  mutate(precip = ifelse(precip >= 1, precip, NA)) %>%
+  group_by(year = year(time)) %>% 
+  summarize(wetdays = sum(!is.na(precip)),
+            precip = sum(precip, na.rm = T)) %>% 
+  mutate(precip = precip/wetdays) %>% 
+  
+  ggplot(aes(x = year, y = precip)) +
+  geom_smooth(color = "red") +
+  geom_point() +
+  labs(subtitle = "Simple precip. intensity index",
+       y = "")
+
+# R20mm: Annual count of days with precip. > 20 mm
+precip_ts_daily %>%
+  mutate(precip = ifelse(precip > 20, 1, 0)) %>%
+  group_by(year = year(time)) %>% 
+  summarize(precip = sum(precip)) %>% 
+  
+  ggplot(aes(x = year, y = precip)) +
+  geom_smooth(color = "red") +
+  geom_point() +
+  labs(subtitle = "Annual count of days with precip. > 20 mm.",
+       y = "no. of days")
+
+# ** CWD: Maximum number of consecutive days with precip. ≥ 1mm
+precip_ts_daily %>% 
+  mutate(precip = ifelse(precip >= 1, 1, 0)) %>% 
+  group_by(year = year(time)) %>%
+  nest() %>% #{.$data[[1]]}
+  mutate(cwd = map(data, function(x){
+    
+    tibble(l = rle(x$precip)$lengths,
+           v = rle(x$precip)$values) %>% 
+      filter(v == 1) %>% 
+      pull(l) %>% 
+      max()
+    
+  })) %>% 
+  select(-data) %>% 
+  unnest(cwd) %>% 
+  
+  ggplot(aes(x = year, y = cwd)) +
+  geom_smooth(color = "red") +
+  geom_point() +
+  labs(subtitle = "Maximum number of consecutive days with precip. > 1 mm.",
+       y = "no. of days")
+
+# ** CDD: Maximum number of consecutive days with precip. < 1mm
+precip_ts_daily %>% 
+  mutate(precip = ifelse(precip < 1, 1, 0)) %>% 
+  group_by(year = year(time)) %>%
+  nest() %>% #{.$data[[1]]}
+  mutate(cwd = map(data, function(x){
+    
+    tibble(l = rle(x$precip)$lengths,
+           v = rle(x$precip)$values) %>% 
+      filter(v == 1) %>% 
+      pull(l) %>% 
+      max()
+    
+  })) %>% 
+  select(-data) %>% 
+  unnest(cwd) %>% 
+  
+  ggplot(aes(x = year, y = cwd)) +
+  geom_smooth(color = "red") +
+  geom_point() +
+  labs(subtitle = "Maximum number of consecutive days with precip. < 1 mm.",
+       y = "no. of days")
+
+# readRDS(str_glue("data/tas_{mod}_wdates.rds")) -> precip
+
+
+
+```
+
+## TAS
+### Time series
+
+```{r fig.width = 7.5, fig.asp = 0.61, dpi = 150}
+
+mod %>% 
+  st_apply(3, mean) %>% 
+  as_tibble() %>% 
+  mutate(year = str_sub(time, 1, 4)) -> df
+
+df %>% 
+  group_by(year) %>% 
+  summarise(annual_tas = mean(mean)) -> annual_mean
+
+ggplot(annual_mean, aes(x = as.numeric(year), y = annual_tas)) +
+  geom_line() +
+  labs(x = "year")
+
+```
+
+### Spatial change
+```{r fig.width = 7.5, fig.asp = 0.61, dpi = 150}
+
+func_periods <- function(t1, t2)
+{
+  mod %>% 
+    filter(time >= as_date(as.character(t1)), time < as_date(as.character(t2))) %>% 
+    st_apply(c("lon", "lat"), mean)
+}
+
+func_periods(19700101, 19901231) -> tas_1970_1990
+func_periods(20000101, 20201231) -> tas_2000_2020
+func_periods(20800101, 20991231) -> tas_2080_2099
+
+list((tas_2000_2020 - tas_1970_1990) %>% setNames("current"),
+     (tas_2080_2099 - tas_2000_2020) %>% setNames("future")) %>%  
+  do.call(c, .) %>% 
+  as_tibble() %>% 
+  pivot_longer(current:future, names_to = "period", values_to = "tas") %>% 
+  mutate(period = recode(period,
+                         "current" = "[1970-1990] - [2000-2020]",
+                         "future" = "[2000-2020] - [2080-2099]")) %>% 
+  
+  ggplot(aes(x = lon, y = lat, fill = tas)) +
+  geom_raster() +
+  facet_wrap(~period, nrow = 1) +
+  scale_fill_distiller(palette = "Spectral") +
+  coord_equal()
+  
+
+```
+
+### Days/year > 302 K
+```{r fig.width = 7.5, fig.asp = 0.61, dpi = 150}
+
+mod %>% 
+  st_apply("time", mean) %>% 
+  as_tibble() %>% 
+  mutate(days_ext_temp = ifelse(mean > 302, 1, 0)) %>% 
+  group_by(year = year(time)) %>% 
+  summarize(days_ext_temp = sum(days_ext_temp)) %>% 
+  
+  ggplot(aes(x = year, y = days_ext_temp)) +
+  geom_col(width = 1) +
+  labs(subtitle = "Days/year over 302 K (28.85)")
+
+```
+
+
+
+
+
+
+
+
+
