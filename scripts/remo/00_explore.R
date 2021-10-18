@@ -76,6 +76,46 @@ b %>%
 
 
 
+# **************************************
+# FIRE WEATHER INDEX
+# **************************************
+
+belem <- readRDS("data/belem.rds")
+st_bbox(belem)
+
+data_dir <- str_glue("/home/cdobler/bucket_mnt/RCM_regridded_data/REMO2015/global_mosaic/daily/fwi_ISIMIP3_bias-adjusted_files/")
+
+data_dir %>%
+  list.files(full.names = T) %>% 
+  .[1] %>% 
+  read_ncdf() -> miau
+
+miau %>% 
+  st_get_dimension_values("lon") %>% 
+  {which(near(., st_bbox(belem)[1], 0.1))} %>% 
+  {. - 10} -> lon_min
+
+miau %>% 
+  st_get_dimension_values("lat") %>% 
+  {which(near(., st_bbox(belem)[2], 0.1))} %>% 
+  {. - 10} -> lat_min
+  
+miau %>% 
+  st_get_dimension_values("lon") %>% 
+  {which(near(., st_bbox(belem)[3], 0.1))} %>% 
+  {. + 5} %>% 
+  {. - lon_min} -> lon_count
+
+miau %>% 
+  st_get_dimension_values("lat") %>% 
+  {which(near(., st_bbox(belem)[4], 0.1))} %>% 
+  {. + 5} %>% 
+  {. - lat_min} -> lat_count
+
+system('gcsfuse cmip5_data /home/cdobler/bucket_mnt/')
+
+
+
 
 
 
