@@ -11,13 +11,17 @@ library(tictoc)
 
 # INPUT SECTION:
 # Un-comment one model:
-mod <- "Had"
+# mod <- "Had"
 # mod <- "MPI"
-# mod <- "Nor"
+mod <- "Nor"
 
 # Un-comment variables:
-vari <- "maximum_temperature"
-va <- "tasmax"
+# vari <- "maximum_temperature"
+# va <- "tasmax"
+# vari <- "minumum_temperature"
+# va <- "tasmin"
+vari <- "wetbulb_temperature"
+va <- "wbtemp"
 
 # Name df to save
 save_df <- str_glue("{va}_{tolower(mod)}_noerr")
@@ -32,9 +36,15 @@ save_df <- str_glue("{va}_{tolower(mod)}_noerr")
 data_dir <- str_glue("/home/cdobler/bucket_mnt/RCM_regridded_data/REMO2015/SAM/daily/{vari}/")
 
 # Vector of files
-data_dir %>%
-  list.files(full.names = T) %>%
-  .[str_detect(., mod)] -> files
+files <- vector()
+class(files) <- "try-error"
+while(class(files) == "try-error"){
+  try(
+    data_dir %>%
+      list.files(full.names = T) %>%
+      .[str_detect(., mod)] -> files
+  )
+}
 
 # Function to import without errors
 func_safe_import <- function(f)
@@ -49,7 +59,7 @@ func_safe_import <- function(f)
       read_ncdf(files[f],
                 make_time = F, # only for Had
                 ncsub = cbind(start = c(283, 280, 1),
-                                        count = c(6, 6, NA))) -> x
+                              count = c(6, 6, NA))) -> x
     )
   }
   return(x)
