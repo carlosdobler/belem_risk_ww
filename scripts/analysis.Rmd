@@ -1,0 +1,288 @@
+---
+title: ""
+author: ""
+date: ""
+output: html_document
+knit: (function(input_file, encoding) {
+      rmarkdown::render(input_file,
+                        encoding = encoding, 
+                        output_dir = here::here("output"))})
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,
+                      fig.align = "center",
+                      out.width = "90%",
+                      message = FALSE,
+                      warning = FALSE,
+                      fig.width = 7.5, 
+                      fig.asp = 0.4, 
+                      dpi = 150)
+
+# Load libraries
+library(tidyverse)
+library(stars)
+library(lubridate)
+# library(patchwork)
+
+# Load files
+belem <- st_read(here::here("data/belem.gpkg"))
+land <- st_read(here::here("data/land.gpkg"))
+
+# readRDS(here::here("data", "chelsea_diff_biovars.rds")) %>%
+#     merge() -> data_chelsea
+
+readRDS(here::here("data", "worldclim_diff_biovars.rds")) %>% 
+    merge() -> data_worldclim
+
+biovar_names <- c("Δ Annual Mean Temperature", # 1
+                  "Δ Mean Diurnal Range",
+                  "Δ Isothermality", # 3
+                  "Δ Temperature Seasonality",
+                  "Δ Max Temperature of Warmest Month", # 5
+                  "Δ Min Temperature of Coldest Month",
+                  "Δ Temperature Annual Range", # 7
+                  "Δ Mean Temperature of Wettest Quarter",
+                  "Δ Mean Temperature of Driest Quarter",
+                  "Δ Mean Temperature of Warmest Quarter", # 10
+                  "Δ Mean Temperature of Coldest Quarter",
+                  "Δ Annual Precipitation",
+                  "Δ Precipitation of Wettest Month", # 13
+                  "Δ Precipitation of Driest Month",
+                  "Δ Precipitation Seasonality (Coefficient of Variation)", # 15
+                  "Δ Precipitation of Wettest Quarter",
+                  "Δ Precipitation of Driest Quarter", # 17
+                  "Δ Precipitation of Warmest Quarter",
+                  "Δ Precipitation of Coldest Quarter") # 19
+
+
+# Functions
+func_maps <- function(data, v){
+    
+    data %>% 
+    slice(biovars, v) %>% 
+    
+    {
+        ggplot() +
+            geom_stars(data = .) +
+            
+            geom_sf(data = aoi_land %>% filter(lc == "w"), 
+                    fill = "black", alpha = 0.15, color = 'black', size = 0.2) +
+            
+            geom_sf(data = belem_l, aes(linetype = as_factor(linetype))) +
+            scale_linetype_manual(values = c("1" = "3333", "2" = "solid"), guide = 'none') +
+            
+            facet_wrap(~attributes, nrow = 1) +
+            
+            scale_x_continuous(breaks = c(-48.7, -48.2)) +
+            scale_y_continuous(breaks = c(-1.6, -1)) +
+            
+            labs(title = biovar_names[v]) +
+            guides(fill = guide_legend(label.position = "bottom", keyheight = 0.6, nrow = 1)) +
+            
+            theme(axis.title = element_blank(),
+                  legend.position = "bottom") +
+            
+            coord_sf(ylim = c(st_get_dimension_values(., "y") %>% last(),
+                              st_get_dimension_values(., "y") %>% first()),
+                     xlim = c(st_get_dimension_values(., "x") %>% first(),
+                              st_get_dimension_values(., "x") %>% last()))
+        
+    }
+}
+
+# Prepare polygons for plotting
+data_worldclim %>% 
+    st_bbox() %>%
+    st_as_sfc() -> aoi
+
+# belem %>% 
+#     st_geometry() %>% 
+#     st_cast("POLYGON") %>% 
+#     {c(aoi, .)} %>% 
+#     st_intersection() %>% 
+#     st_sf() %>% 
+#     mutate(lc = c("w", "l")) -> aoi_belem
+
+land %>% 
+    filter(scalerank <= 6) %>%
+    st_geometry() %>% 
+    st_crop(aoi) %>%
+    st_cast("POLYGON") %>% 
+    {c(aoi, .)} %>% 
+    st_intersection() %>% 
+    st_sf() %>%
+    # slice(-4) %>% # artifact
+    mutate(lc = c("w", "l", "l", "l", "l", "l")) -> aoi_land
+
+# belem %>% 
+#     st_simplify(dTolerance = 700) %>%
+#     st_cast("POLYGON") %>%
+#     st_cast("LINESTRING") %>% 
+#     st_sf() %>% 
+#     st_write(here::here("data/belem_l.gpkg"))
+
+belem_l <- st_read(here::here("data", "belem_l.gpkg"))
+
+```
+
+  
+```{r eval=FALSE, include=FALSE}
+func_maps(data_chelsea, 4) + 
+    scale_fill_viridis_c(name = NULL, option = "B", direction = 1) + 
+    labs(subtitle = "CHELSEA:")
+
+```
+
+```{r temp_seasonality_wc}
+func_maps(data_worldclim, 4) + 
+    scale_fill_gradientn(name = "°C", colors = viridis::plasma(15)[-(1:2)])
+
+```
+
+  
+
+```{r eval=FALSE, include=FALSE}
+func_maps(data_chelsea, 7) + 
+    scale_fill_viridis_c(name = NULL, option = "B", direction = 1) + 
+    labs(subtitle = "CHELSEA:")
+
+```
+
+```{r temp_annrange_wc}
+func_maps(data_worldclim, 7) + 
+    scale_fill_gradientn(name = "°C", colors = viridis::plasma(15)[-(1:2)])
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+func_maps(data_chelsea, 13) + 
+    scale_fill_viridis_c(name = NULL, option = "C", direction = -1) + 
+    labs(subtitle = "CHELSEA:")
+
+```
+
+```{r}
+func_maps(data_worldclim, 13) + 
+    scale_fill_gradientn(name = "mm", colors = RColorBrewer::brewer.pal(10, "RdYlBu"), n.breaks = 6)
+
+```
+
+  
+## `r biovar_names[14]`
+
+```{r}
+func_maps(data_chelsea, 14) + 
+    scale_fill_viridis_c(name = NULL, option = "C", direction = -1) + 
+    labs(subtitle = "CHELSEA:")
+
+```
+
+```{r}
+func_maps(data_worldclim, 14) + 
+    scale_fill_gradientn(name = "mm", colors = RColorBrewer::brewer.pal(10, "YlOrBr") %>% rev())
+
+```
+
+
+# FWI
+```{r fig.asp = 0.5}
+
+"~/Documents/outside_Insync/Data/fwi_ww/Wellington_Wildfire_REMO_diffFWIdays_mean_rawcount_SAM_noReference_2021-2050_1971-2000.tif" %>% 
+    read_stars(proxy = F) -> fwi_diff
+
+st_point(c(-48.5161, -1.3679)) %>%
+    st_sfc(crs = st_crs(fwi_diff)) -> belem_pt
+
+st_point(c(-48.5161, -1.3679)) %>%
+    st_buffer(3) %>% 
+    st_sfc(crs = st_crs(fwi_diff)) -> belem_buf
+
+fwi_diff[belem_buf] %>% 
+{
+    ggplot() +
+        geom_stars(data = .) +
+        geom_sf(data = belem_pt, color = "white") +
+        scale_fill_viridis_c(name = "Days",
+                             option = "A", direction = -1, na.value = "transparent") +
+        theme_void() +
+        labs(title = "Change in the length of the fire season\nwithin a ~300 km radius from Belém",
+             subtitle = "(2020-2050 - 1971-2000)")
+}
+
+```
+
+```{r}
+
+"/home/cdobler/Documents/Insync/Research/Data/Spatial/ne_10m_admin_1_states_provinces/" %>%
+    list.files(full.names = T) %>% 
+    .[str_detect(., "shp")] %>% 
+    st_read() %>% 
+    
+    filter(iso_a2 == "BR",
+           name == "Pará") %>% 
+    select(geometry) -> para
+
+para %>% 
+    st_simplify(dTolerance = 5000) -> para
+
+st_bbox(para) %>% 
+    st_as_sfc() %>% 
+    st_sf() %>% 
+    st_buffer(100000) %>% 
+    st_bbox() -> bb
+
+fwi_diff[bb] %>%
+{
+    ggplot() +
+        geom_stars(data = .) +
+        geom_sf(data = para, fill = NA, color = "white", linetype = "2222") +
+        geom_sf(data = belem_pt, color = "black") +
+        scale_fill_viridis_c(name = "Days",
+                             option = "A", direction = -1, na.value = "transparent") +
+        # theme_void() +
+        scale_x_continuous(breaks = c(-58, -48)) +
+        scale_y_continuous(breaks = c(2, -8)) +
+        labs(title = "Change in the length of the\nfire season within Pará",
+             subtitle = "(2020-2050 - 1971-2000)") +
+        theme(axis.title = element_blank())
+    
+}
+
+```
+
+# Wetbulb temp
+
+```{r out.width = "60%", fig.width = 5, fig.height = 3.8} 
+
+wetbulb_data <- here::here("data", "remo_wetbulb.rds") %>% readRDS()
+
+wetbulb_data %>% 
+    map_df(function(s){
+        
+        s %>% 
+            st_apply(3, mean) %>%
+            as_tibble() %>% 
+            group_by(year = year(time)) %>% 
+            summarize(count = sum(mean >= 28)) %>% 
+            mutate(model = names(s))
+    }) %>% 
+    
+    group_by(year) %>% 
+    summarize(count = mean(count)) -> tb
+    
+tb %>% 
+    ggplot(aes(x = year, y = count)) +
+    geom_smooth(color = "transparent") +
+    geom_point(aes(color = count)) +
+    scale_color_viridis_c(option = "C") +
+    scale_x_continuous(breaks = seq(1970, 2090, 20)) +
+    theme(axis.title.x = element_blank(),
+          legend.position = 'none') +
+    labs(title = "Days over 28 C",
+         caption = "Data source: REMO")
+
+```
+
