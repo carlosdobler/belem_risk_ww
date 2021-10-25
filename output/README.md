@@ -2,7 +2,7 @@
 Belém
 -----
 
-<img src="/home/cdobler/Documents/Insync/Research/Projects/belem_risk_ww/output/analysis_files/figure-markdown_github/location.png" width="40%" style="display: block; margin: auto;" />
+<img src="analysis_files/figure-markdown_github/location.png" width="40%" style="display: block; margin: auto;" />
 
 ------------------------------------------------------------------------
 
