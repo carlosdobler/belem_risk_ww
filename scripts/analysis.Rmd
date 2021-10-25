@@ -2,11 +2,7 @@
 title: ""
 author: ""
 date: ""
-output: html_document
-knit: (function(input_file, encoding) {
-      rmarkdown::render(input_file,
-                        encoding = encoding, 
-                        output_dir = here::here("output"))})
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -16,7 +12,7 @@ knitr::opts_chunk$set(echo = FALSE,
                       out.width = "90%",
                       message = FALSE,
                       warning = FALSE,
-                      fig.width = 7.5, 
+                      fig.width = 9, 
                       fig.asp = 0.4, 
                       dpi = 150)
 
@@ -24,14 +20,13 @@ knitr::opts_chunk$set(echo = FALSE,
 library(tidyverse)
 library(stars)
 library(lubridate)
-# library(patchwork)
 
 # Load files
 belem <- st_read(here::here("data/belem.gpkg"))
 land <- st_read(here::here("data/land.gpkg"))
 
-# readRDS(here::here("data", "chelsea_diff_biovars.rds")) %>%
-#     merge() -> data_chelsea
+readRDS(here::here("data", "chelsea_diff_biovars.rds")) %>%
+    merge() -> data_chelsea
 
 readRDS(here::here("data", "worldclim_diff_biovars.rds")) %>% 
     merge() -> data_worldclim
@@ -70,8 +65,10 @@ func_maps <- function(data, v){
             geom_sf(data = aoi_land %>% filter(lc == "w"), 
                     fill = "black", alpha = 0.15, color = 'black', size = 0.2) +
             
-            geom_sf(data = belem_l, aes(linetype = as_factor(linetype))) +
-            scale_linetype_manual(values = c("1" = "3333", "2" = "solid"), guide = 'none') +
+            # geom_sf(data = belem_l, aes(linetype = as_factor(linetype))) +
+            # scale_linetype_manual(values = c("1" = "3333", "2" = "solid"), guide = 'none') +
+            geom_sf(data = belem, fill = NA, linetype = "2222", color = "black") +
+            # geom_sf(data = belem, fill = NA, color = "black") +
             
             facet_wrap(~attributes, nrow = 1) +
             
@@ -127,7 +124,14 @@ belem_l <- st_read(here::here("data", "belem_l.gpkg"))
 
 ```
 
-  
+## Belém
+```{r out.width="40%"}
+knitr::include_graphics("analysis_files/figure-markdown_github/location.png")
+
+```
+
+---
+
 ```{r eval=FALSE, include=FALSE}
 func_maps(data_chelsea, 4) + 
     scale_fill_viridis_c(name = NULL, option = "B", direction = 1) + 
@@ -137,12 +141,14 @@ func_maps(data_chelsea, 4) +
 
 ```{r temp_seasonality_wc}
 func_maps(data_worldclim, 4) + 
-    scale_fill_gradientn(name = "°C", colors = viridis::plasma(15)[-(1:2)])
+    scale_fill_gradientn(name = "°C", colors = viridis::plasma(15)[-(1:2)]) +
+    labs(caption = "Data source: WorldClim's CMIP6 downscaled projections")
 
 ```
-
+This figure shows future changes in the **standard deviation of monthly mean temperatures** (×100) relative to 1970-2000. Higher values indicate that the "spread" of temperatures within periods will increase over time (hot months will become hotter and cold months colder).
+    
+---
   
-
 ```{r eval=FALSE, include=FALSE}
 func_maps(data_chelsea, 7) + 
     scale_fill_viridis_c(name = NULL, option = "B", direction = 1) + 
@@ -150,12 +156,15 @@ func_maps(data_chelsea, 7) +
 
 ```
 
-```{r temp_annrange_wc}
+```{r temp_annual_range_wc}
 func_maps(data_worldclim, 7) + 
-    scale_fill_gradientn(name = "°C", colors = viridis::plasma(15)[-(1:2)])
+    scale_fill_gradientn(name = "°C", colors = viridis::plasma(15)[-(1:2)]) +
+    labs(caption = "Data source: WorldClim's CMIP6 downscaled projections")
 
 ```
+This figure shows future changes in **the difference between the highest maximum temp. and the lowest minimum temp. within a year** relative to 1970-2000. Higher values indicate that that difference will increase over time. The difference between this figure and the previous one is that this one considers extreme values (max and min temps) rather than the mean, and it analyzes those differences annually rather than by time period. But in a way it says a similar story: the hot months of the year will get hotter and cold months colder. If a choice needs to be made between this or the previous figure for the one-pager, I'd choose this one since it is easier to interpret.
 
+---
 
 ```{r eval=FALSE, include=FALSE}
 func_maps(data_chelsea, 13) + 
@@ -164,31 +173,34 @@ func_maps(data_chelsea, 13) +
 
 ```
 
-```{r}
+```{r precip_wettest_month}
 func_maps(data_worldclim, 13) + 
-    scale_fill_gradientn(name = "mm", colors = RColorBrewer::brewer.pal(10, "RdYlBu"), n.breaks = 6)
+    scale_fill_gradientn(name = "mm", colors = RColorBrewer::brewer.pal(10, "RdYlBu"), n.breaks = 6) +
+    labs(caption = "Data source: WorldClim's CMIP6 downscaled projections")
 
 ```
-
+This figure shows future changes in the **precipitation of the wettest month of a year** relative to 1970-2000. Higher values indicate that that the wettest month will become wetter over time. Notice that the ensemble of models project a reduction of precipitation until 2060-2080 (first three facets), and after that, an abrupt increase (last facet). 
   
-## `r biovar_names[14]`
+---
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 func_maps(data_chelsea, 14) + 
     scale_fill_viridis_c(name = NULL, option = "C", direction = -1) + 
     labs(subtitle = "CHELSEA:")
 
 ```
 
-```{r}
+```{r precip_driest_month}
 func_maps(data_worldclim, 14) + 
-    scale_fill_gradientn(name = "mm", colors = RColorBrewer::brewer.pal(10, "YlOrBr") %>% rev())
+    scale_fill_gradientn(name = "mm", colors = RColorBrewer::brewer.pal(9, "YlOrBr") %>% rev()) +
+    labs(caption = "Data source: WorldClim's CMIP6 downscaled projections")
 
 ```
+This figure shows future changes in the **precipitation of the driest month of a year** relative to 1970-2000. Higher values indicate that that the driest month will become drier over time.  
 
+---
 
-# FWI
-```{r fig.asp = 0.5}
+```{r length_fire_seas_circular, fig.asp = 0.5}
 
 "~/Documents/outside_Insync/Data/fwi_ww/Wellington_Wildfire_REMO_diffFWIdays_mean_rawcount_SAM_noReference_2021-2050_1971-2000.tif" %>% 
     read_stars(proxy = F) -> fwi_diff
@@ -196,30 +208,53 @@ func_maps(data_worldclim, 14) +
 st_point(c(-48.5161, -1.3679)) %>%
     st_sfc(crs = st_crs(fwi_diff)) -> belem_pt
 
-st_point(c(-48.5161, -1.3679)) %>%
+belem_pt %>%
+    .[[1]] %>% # sfg
     st_buffer(3) %>% 
     st_sfc(crs = st_crs(fwi_diff)) -> belem_buf
 
+# land %>% 
+#     st_intersection(belem_buf) %>% 
+#     st_geometry() %>% 
+#     st_cast("MULTIPOLYGON") %>% 
+#     st_simplify(dTolerance = 5000) -> land_belem_buf
+
 fwi_diff[belem_buf] %>% 
+    setNames("inc") %>%
+    mutate(inc = ifelse(inc <= 0, 0, inc)) %>%
+    
 {
     ggplot() +
         geom_stars(data = .) +
-        geom_sf(data = belem_pt, color = "white") +
-        scale_fill_viridis_c(name = "Days",
-                             option = "A", direction = -1, na.value = "transparent") +
+        
+        geom_sf(data = belem_pt, color = "black", fill = "white", shape = 21, stroke = 0.8) +
+        # geom_sf(data = land_belem_buf, fill = NA) + 
+        
         theme_void() +
+        theme(legend.position = "bottom") +
+        guides(fill = guide_legend(label.position = "bottom", keyheight = 0.6, nrow = 1)) +
+        scale_fill_gradientn(name = "days", 
+                             colors = viridis::inferno(15)[-(1:2)] %>% rev(), 
+                             na.value = "transparent",
+                             n.breaks = 6) +
+        
+        
         labs(title = "Change in the length of the fire season\nwithin a ~300 km radius from Belém",
-             subtitle = "(2020-2050 - 1971-2000)")
+             subtitle = "(2020-2050 - 1970-2000)",
+             caption = "Data source: REMO")
 }
 
 ```
+This figure shows future changes in the **length of the fire season** in the surroundings of Belem relative to 1970-2000. Higher values indicate an increase (in days) of such length, and thus, more risk of wildfires. We think this figure is relevant as it suggests Belem's exposure to worsening air quality over time.
 
-```{r}
+---
+
+```{r length_fire_seas_para, fig.asp=0.5}
 
 "/home/cdobler/Documents/Insync/Research/Data/Spatial/ne_10m_admin_1_states_provinces/" %>%
     list.files(full.names = T) %>% 
     .[str_detect(., "shp")] %>% 
-    st_read() %>% 
+    st_read(quiet = T) %>% 
     
     filter(iso_a2 == "BR",
            name == "Pará") %>% 
@@ -235,27 +270,34 @@ st_bbox(para) %>%
     st_bbox() -> bb
 
 fwi_diff[bb] %>%
+    setNames("inc") %>%
+    mutate(inc = ifelse(inc <= 0, 0, inc)) %>%
 {
     ggplot() +
         geom_stars(data = .) +
-        geom_sf(data = para, fill = NA, color = "white", linetype = "2222") +
-        geom_sf(data = belem_pt, color = "black") +
-        scale_fill_viridis_c(name = "Days",
-                             option = "A", direction = -1, na.value = "transparent") +
-        # theme_void() +
+        geom_sf(data = para, fill = NA, color = "black", size = 0.3) +
+        geom_sf(data = belem_pt, color = "black", fill = "white", shape = 21, stroke = 0.8) +
         scale_x_continuous(breaks = c(-58, -48)) +
         scale_y_continuous(breaks = c(2, -8)) +
-        labs(title = "Change in the length of the\nfire season within Pará",
-             subtitle = "(2020-2050 - 1971-2000)") +
-        theme(axis.title = element_blank())
+        labs(title = "Change in the length of\nthe fire season in Pará",
+             subtitle = "(2020-2050 - 1971-2000)",
+             caption = "Data source: REMO") +
+        theme(axis.title = element_blank(),
+              legend.position = "bottom") +
+        guides(fill = guide_legend(label.position = "bottom", keyheight = 0.6, nrow = 1)) +
+        scale_fill_gradientn(name = "days", 
+                             colors = rev(viridis::inferno(15)[-(1:2)]), 
+                             na.value = "transparent",
+                             n.breaks = 6)
     
 }
 
 ```
+Same as above, but for the whole state of Pará.
 
-# Wetbulb temp
+---
 
-```{r out.width = "60%", fig.width = 5, fig.height = 3.8} 
+```{r wetbulb_temp, out.width = "60%", fig.width = 6, fig.asp = 0.8} 
 
 wetbulb_data <- here::here("data", "remo_wetbulb.rds") %>% readRDS()
 
@@ -281,8 +323,11 @@ tb %>%
     scale_x_continuous(breaks = seq(1970, 2090, 20)) +
     theme(axis.title.x = element_blank(),
           legend.position = 'none') +
-    labs(title = "Days over 28 C",
-         caption = "Data source: REMO")
+    labs(title = "Wet-bulb temperature",
+         subtitle = "Change in the number of days/year over 28 °C",
+         caption = "Data source: REMO",
+         y = "days/year")
 
 ```
+This figure shows historical and future **frequency of days/year over 28 C of wet-bulb temperatures**. Wet-bulb temperature is a "feels-like" temperature indicator (strictly speaking, it is defined as the air temperature at 100% relative humidity). A wet-bulb temperature of 28 is considered dangerous for humans; continued exposure to it can lead to severe heat stress.
 
