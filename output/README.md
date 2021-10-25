@@ -6,7 +6,9 @@ Belém
 
 ------------------------------------------------------------------------
 
-<img src="analysis_files/figure-markdown_github/temp_seasonality_wc-1.png" width="90%" style="display: block; margin: auto;" /> This figure shows future changes in the **standard deviation of monthly mean temperatures** (×100) relative to 1970-2000. Higher values indicate that the "spread" of temperatures within periods will increase over time (hot months will become hotter and cold months colder).
+<img src="analysis_files/figure-markdown_github/temp_seasonality_wc-1.png" width="90%" style="display: block; margin: auto;" />
+
+This figure shows future changes in the **standard deviation of monthly mean temperatures** (×100) relative to 1970-2000. Higher values indicate that the "spread" of temperatures within periods will increase over time (hot months will become hotter and cold months colder).
 
 ------------------------------------------------------------------------
 
