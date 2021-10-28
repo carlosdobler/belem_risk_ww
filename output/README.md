@@ -1,7 +1,7 @@
 
 ## Belém
 
-<img src="/home/cdobler/Documents/Insync/Research/Projects/belem_risk_ww/output/analysis_files/figure-markdown_github/location.png" width="50%" style="display: block; margin: auto;" />
+<img src="analysis_files/figure-markdown_github/location.png" width="50%" style="display: block; margin: auto;" />
 
 ------------------------------------------------------------------------
 
@@ -25,7 +25,7 @@ This figure shows future changes in the **precipitation of the driest month of a
 
 <img src="analysis_files/figure-markdown_github/length_fire_seas_para-1.png" width="90%" style="display: block; margin: auto;" />
 
-Same as above, but for the whole state of Pará.
+This figure shows future changes in the **length of the fire season** in the state of Pará relative to 1970-2000. Higher values indicate an increase (in days) of such length, and thus, more risk of wildfires. We think this figure is relevant as it suggests Belem's exposure to worsening air quality over time.
 
 ------------------------------------------------------------------------
 
